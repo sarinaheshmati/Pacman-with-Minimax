@@ -1,13 +1,12 @@
 from cmath import inf
 import queue
+import re
 import numpy as np
 import random as rd
 from os import system, name
 from time import sleep
 import math
 import copy
-from collections import deque
-import networkx as nx
 
 
 #defining the maze and its obstacles and dots with 0 : no obstacles or dots, 1 : dots, -1 : obstacle
@@ -21,18 +20,18 @@ maze_initial_map = np.array([[1, 1, 1, 1, -1, 1, 1, 1, 1, 1, 1, 1, 1, -1, 1, 1, 
          [1, -1, -1, 1, -1, 1, -1, -1, -1, -1, -1, -1, 1, -1, 1, -1, -1, 1],
          [1, 1, 1, 1, -1, 1, 1, 1, 1, 1, 1, 1, 1, -1, 1, 1, 1, 1]])
          
-
-#clear
+#clear function
 def clear():
     if name == 'nt':
         _ = system('cls')
     else:
         _ = system('clear')
 
-#the function used for calculating distance
+#the function using BFS algorithm for calculating the distance to the closest dot
 def distance(pacman_location, maze):
-    visited = []
+
     next_to_visit = []
+    visited = []
     distance_nodes = {tuple(pacman_location): 0}
 
     next_to_visit.append(pacman_location)
@@ -42,40 +41,41 @@ def distance(pacman_location, maze):
         current_node = next_to_visit.pop(0)
 
         if maze[current_node[0]][current_node[1]] == 1:
+            # print("dist1: ", distance_nodes[tuple(current_node)])
             return distance_nodes[tuple(current_node)]
+            
         
-        if (current_node[0] - 1 >= 0) and (maze[current_node[0] - 1][current_node[1]] != -1):
-            if ([current_node[0] - 1, current_node[1]] not in visited):
+        if current_node[0] >= 1 and maze[current_node[0] - 1][current_node[1]] != -1:
+            if [current_node[0] - 1, current_node[1]] not in visited:
                 next_to_visit.append([current_node[0] - 1, current_node[1]])
                 visited.append([current_node[0] - 1, current_node[1]])
                 distance_nodes[tuple([current_node[0] - 1, current_node[1]])] = distance_nodes[tuple(current_node)] + 1
 
-        if (current_node[0] + 1 <= 8) and (maze[current_node[0] + 1][current_node[1]] != -1):
-            if ([current_node[0] + 1, current_node[1]] not in visited):
+        if current_node[0] <= 7 and maze[current_node[0] + 1][current_node[1]] != -1:
+            if [current_node[0] + 1, current_node[1]] not in visited:
                 next_to_visit.append([current_node[0] + 1, current_node[1]])
                 visited.append([current_node[0] + 1, current_node[1]])
                 distance_nodes[tuple([current_node[0] + 1, current_node[1]])] = distance_nodes[tuple(current_node)] + 1
 
 
-        if (current_node[1] - 1 >= 0) and (maze[current_node[0]][current_node[1] - 1] != -1):
-            if ([current_node[0], current_node[1] - 1] not in visited):
+        if current_node[1] >= 1 and maze[current_node[0]][current_node[1] - 1] != -1:
+            if [current_node[0], current_node[1] - 1] not in visited:
                 next_to_visit.append([current_node[0], current_node[1] - 1])
                 visited.append([current_node[0], current_node[1] - 1])
                 distance_nodes[tuple([current_node[0], current_node[1] - 1])] = distance_nodes[tuple(current_node)] + 1
 
-        if (current_node[1] + 1 <= 17) and (maze[current_node[0]][current_node[1] + 1] != -1):
-            if ([current_node[0], current_node[1] + 1] not in visited):
+        if current_node[1] <= 16 and maze[current_node[0]][current_node[1] + 1] != -1:
+            if [current_node[0], current_node[1] + 1] not in visited:
                 next_to_visit.append([current_node[0], current_node[1] + 1])
                 visited.append([current_node[0], current_node[1] + 1])
                 distance_nodes[tuple([current_node[0], current_node[1] + 1])] = distance_nodes[tuple(current_node)] + 1
 
     return 0
 
-#the function used for manhatan distance
+#the function used for calculating manhatan distance
 def distance_M(location1, location2):
     result = abs(location1[0] - location2[0]) + abs(location1[1] - location2[1])
     return result
-
 
 #defining the pacman class
 class PacMan:
@@ -103,7 +103,6 @@ class PacMan:
         
         if move == 4:
             self._location[1] = self._location[1] - 1
-
 
 #defining the ghost class
 class Ghost:
@@ -159,7 +158,6 @@ class Ghost:
             if (self._location[1] - 1 >= 0) and (maze[self._location[0]][self._location[1] - 1] != -1):
                 self._location[1] = self._location[1] - 1
 
-
 #defining the game class
 class Game:
     def __init__(self):
@@ -173,6 +171,8 @@ class Game:
         self._score = 0
     #the number of the remaining dots
         self._goal_test_counter = 100
+    #the number of moves
+        self.C = 0
 
     @property
     def maze(self):
@@ -273,6 +273,7 @@ class Game:
 
     #1 : up, 2 : right, 3 : down, 4 : left
     #defining the possible moves function that returns the moves you can have from a curtain location
+    #not used in the updated version
     def possible_moves(self, location, maze):
         moves = []
         for i in range (1, 5):
@@ -301,126 +302,195 @@ class Game:
                     continue
         return moves
 
-    #the e-utility function that is for calculating the score for each state
-    def e_utility(self, maze, pacman, inky, pinky):
-        initial_utility = 0
-        radius = 3
-        PI = distance_M(pacman._location, inky._location)
-        if PI <= radius:
-            if PI == 3:
-                initial_utility -= 2
-            if PI == 2:
-                initial_utility -= 4
-            if PI == 1:
-                initial_utility -= 6
-            if PI == 0:
-                initial_utility -= 200
+    #the elevated e-utility function that is for calculating the score for each state, considering the amount of dots that has been eaten up until now (ate), the amount of moves that has been done (C), and the minimum distance to dots and ghosts.
+    def ee_utility(self, maze, pacman, inky, pinky, ate, C):
 
-        PP = distance_M(pacman._location, pinky._location)
-        if PP <= radius:
-            if PP == 3:
-                initial_utility -= 2
-            if PP == 2:
-                initial_utility -= 4
-            if PP == 1:
-                initial_utility -= 6
-            if PP == 0:
-                initial_utility -= 200
+        #the value for the dots that has been eaten until the given state
+        ate_value = ate * 38
 
+        #the manhatan distance to the closest ghost and its value
+        closest_ghost = min(distance_M(pacman._location, inky._location), distance_M(pacman._location, pinky._location))
+        ghost_value = closest_ghost
 
-        CD = distance(pacman._location, maze)
-        initial_utility += 3 * (100 - CD)
+        #the BFS-calculated path to the closest dot and its value
+        closest_dot = distance(pacman._location, maze)
+        dot_value = 2 * (40 - closest_dot)
 
-
-        return initial_utility
-
-
-
-
-
-
-
-
-    # the minimax algorithm, used for pacman's next move
-    def minimax(self, agent, depth, temp_maze, temp_pacman, temp_inky, temp_pinky, temp_GTC):
-        if (temp_GTC == 0) or (temp_pacman._location == temp_inky._location) or (temp_pacman._location == temp_pinky._location) or (depth == 0):
-            return self.e_utility(temp_maze, temp_pacman, temp_inky, temp_pinky)
+        #escaping from the ghost when its necessary
+        if closest_ghost <= 1:
+            return 5 * ghost_value - 999999999999
         
-        #pacman : 0
-        if agent == 0:
-            u = 0
-            flag = 0
-            max_value = float('-inf')
-            for moves in self.possible_moves(temp_pacman._location, temp_maze):
-                temp_pacman.update_location_by_move(moves)
-                if temp_maze[temp_pacman._location[0]][temp_pacman._location[1]] == 1:
-                    temp_GTC -= 1
-                    u += 4
-                    temp_maze[temp_pacman._location[0]][temp_pacman._location[1]] = 0
-                    # flag = 1
+        #the sum of the calculated values
+        return dot_value + ate_value + ghost_value - C
 
-                new_value = self.minimax((agent + 1) % 3, depth - 1, temp_maze, temp_pacman, temp_inky, temp_pinky, temp_GTC) + 10
-                max_value = max(new_value, max_value)
+    # the new minimax algorithm, used for pacman's next move, the issue of not returning the temp agents to their spot is fixed.
+    def minimax(self, agent, cur_depth, tar_depth, temp_maze, temp_pacman, temp_inky, temp_pinky, temp_GTC, ate=0):
+        if (temp_GTC == 0) or (temp_pacman._location == temp_inky._location) or (temp_pacman._location == temp_pinky._location) or (cur_depth == tar_depth):
+            return self.ee_utility(temp_maze, temp_pacman, temp_inky, temp_pinky, ate, self.C)
+
+        if agent == 0:
+            best_move = 0
+            max_value = float('-inf')
+            if (temp_pacman._location[0] - 1 >= 0) and (temp_maze[temp_pacman._location[0] - 1][temp_pacman._location[1]] != -1):
+                flag = 1
+                if temp_maze[temp_pacman._location[0] - 1][temp_pacman._location[1]] == 1:
+                    temp_maze[temp_pacman._location[0] - 1][temp_pacman._location[1]] = 0
+                    flag = 0
+                    ate += 1
+                    temp_GTC -= 1
+                temp_pacman.update_location_by_move(1)
+                new_value = self.minimax(1, cur_depth, tar_depth, temp_maze, temp_pacman, temp_inky, temp_pinky, temp_GTC, ate)
+                if new_value > max_value:
+                    max_value = new_value
+                    best_move = 1
+
+                temp_pacman.update_location_by_move(3)
+                if flag == 0:
+                    temp_maze[temp_pacman._location[0] - 1][temp_pacman._location[1]] = 1
+                    ate -= 1
+                    temp_GTC += 1
+
+            if (temp_pacman._location[1] + 1 <= 17) and (temp_maze[temp_pacman._location[0]][temp_pacman._location[1] + 1] != -1):
+                flag = 1
+                if temp_maze[temp_pacman._location[0]][temp_pacman._location[1] + 1] == 1:
+                    temp_maze[temp_pacman._location[0]][temp_pacman._location[1] + 1] = 0
+                    flag = 0
+                    ate += 1
+                    temp_GTC -= 1
+                temp_pacman.update_location_by_move(2)
+                new_value = self.minimax(1, cur_depth, tar_depth, temp_maze, temp_pacman, temp_inky, temp_pinky, temp_GTC, ate)
+                if new_value > max_value:
+                    max_value = new_value
+                    best_move = 2
+
+                temp_pacman._location[1] -= 1
+                if flag == 0:
+                    temp_maze[temp_pacman._location[0]][temp_pacman._location[1] + 1] = 1
+                    ate -= 1
+                    temp_GTC += 1
+
+            if (temp_pacman._location[0] + 1 <= 8) and (temp_maze[temp_pacman._location[0] + 1][temp_pacman._location[1]] != -1):
+                flag = 1
+                if temp_maze[temp_pacman._location[0] + 1][temp_pacman._location[1]] == 1:
+                    temp_maze[temp_pacman._location[0] + 1][temp_pacman._location[1]] = 0
+                    flag = 0
+                    ate += 1
+                    temp_GTC -= 1
+                temp_pacman.update_location_by_move(3)
+                new_value = self.minimax(1, cur_depth, tar_depth, temp_maze, temp_pacman, temp_inky, temp_pinky, temp_GTC, ate)
+                if new_value > max_value:
+                    max_value = new_value
+                    best_move = 3
+
+                temp_pacman._location[0] -= 1
+                if flag == 0:
+                    temp_maze[temp_pacman._location[0] + 1][temp_pacman._location[1]] = 1
+                    ate -= 1
+                    temp_GTC += 1
+
+            if (temp_pacman._location[1] - 1 >= 0) and (temp_maze[temp_pacman._location[0]][temp_pacman._location[1] - 1] != -1):
+                flag = 1
+                if temp_maze[temp_pacman._location[0]][temp_pacman._location[1] - 1] == 1:
+                    temp_maze[temp_pacman._location[0]][temp_pacman._location[1] - 1] = 0
+                    flag = 0
+                    ate += 1
+                    temp_GTC -= 1
+                temp_pacman.update_location_by_move(4)
+                new_value = self.minimax(1, cur_depth, tar_depth, temp_maze, temp_pacman, temp_inky, temp_pinky, temp_GTC, ate)
+                if new_value > max_value:
+                    max_value = new_value
+                    best_move = 4
+
+                temp_pacman._location[1] += 1
+                if flag == 0:
+                    temp_maze[temp_pacman._location[0]][temp_pacman._location[1] - 1] = 1
+                    ate -= 1
+                    temp_GTC += 1
+
+            if cur_depth == 0:
+                return best_move
 
             return max_value
         
-        #inky : 1
         elif agent == 1:
+
             min_value = float('inf')
-            for moves in self.possible_moves(temp_inky._location, temp_maze):
-                temp_inky.update_location_by_move(moves)
-                new_value = self.minimax((agent + 1) % 3, depth - 1, temp_maze, temp_pacman, temp_inky, temp_pinky, temp_GTC)
+
+            if (temp_pinky._location[0] - 1 >= 0) and (temp_maze[temp_pinky._location[0] - 1][temp_pinky._location[1]] != -1):
+                temp_pinky.update_location_by_move(1)
+                new_value = self.minimax(2, cur_depth, tar_depth, temp_maze, temp_pacman, temp_inky, temp_pinky, temp_GTC, ate)
                 min_value = min(new_value, min_value)
+                temp_pinky._location[0] += 1
+
+            if (temp_pinky._location[1] + 1 <= 17) and (temp_maze[temp_pinky._location[0]][temp_pinky._location[1] + 1] != -1):
+                temp_pinky.update_location_by_move(2)
+                new_value = self.minimax(2, cur_depth, tar_depth, temp_maze, temp_pacman, temp_inky, temp_pinky, temp_GTC, ate)
+                min_value = min(new_value, min_value)
+                temp_pinky._location[0] -= 1
+
+            if (temp_pinky._location[0] + 1 <= 8) and (temp_maze[temp_pinky._location[0] + 1][temp_pinky._location[1]] != -1):
+                temp_pinky.update_location_by_move(3)
+                new_value = self.minimax(2, cur_depth, tar_depth, temp_maze, temp_pacman, temp_inky, temp_pinky, temp_GTC, ate)
+                min_value = min(new_value, min_value)
+                temp_pinky._location[0] -= 1
+
+            if (temp_pinky._location[1] - 1 >= 0) and (temp_maze[temp_pinky._location[0]][temp_pinky._location[1] - 1] != -1):
+                temp_pinky.update_location_by_move(4)
+                new_value = self.minimax(2, cur_depth, tar_depth, temp_maze, temp_pacman, temp_inky, temp_pinky, temp_GTC, ate)
+                min_value = min(new_value, min_value)
+                temp_pinky._location[1] += 1
 
             return min_value
-        
-        #pinky : 2
+
         elif agent == 2:
+
             min_value = float('inf')
-            for moves in self.possible_moves(temp_pinky._location, temp_maze):
-                temp_pinky.update_location_by_move(moves)
-                new_value = self.minimax((agent + 1) % 3, depth - 1, temp_maze, temp_pacman, temp_inky, temp_pinky, temp_GTC)
+
+            if (temp_inky._location[0] - 1 >= 0) and (temp_maze[temp_inky._location[0] - 1][temp_inky._location[1]] != -1):
+                temp_inky.update_location_by_move(1)
+                new_value = self.minimax(2, cur_depth + 1, tar_depth, temp_maze, temp_pacman, temp_inky, temp_pinky, temp_GTC, ate)
                 min_value = min(new_value, min_value)
+                temp_inky._location[0] += 1
+
+            if (temp_inky._location[1] + 1 <= 17) and (temp_maze[temp_inky._location[0]][temp_inky._location[1] + 1] != -1):
+                temp_inky.update_location_by_move(2)
+                new_value = self.minimax(2, cur_depth + 1, tar_depth, temp_maze, temp_pacman, temp_inky, temp_pinky, temp_GTC, ate)
+                min_value = min(new_value, min_value)
+                temp_inky._location[0] -= 1
+
+            if (temp_inky._location[0] + 1 <= 8) and (temp_maze[temp_inky._location[0] + 1][temp_inky._location[1]] != -1):
+                temp_inky.update_location_by_move(3)
+                new_value = self.minimax(2, cur_depth + 1, tar_depth, temp_maze, temp_pacman, temp_inky, temp_pinky, temp_GTC, ate)
+                min_value = min(new_value, min_value)
+                temp_inky._location[0] -= 1
+
+            if (temp_inky._location[1] - 1 >= 0) and (temp_maze[temp_inky._location[0]][temp_inky._location[1] - 1] != -1):
+                temp_inky.update_location_by_move(4)
+                new_value = self.minimax(2, cur_depth + 1, tar_depth, temp_maze, temp_pacman, temp_inky, temp_pinky, temp_GTC, ate)
+                min_value = min(new_value, min_value)
+                temp_inky._location[1] += 1
 
             return min_value
 
     #the function for the next move of the pacman
-    #usingthe minimax algorithm for choosing the successive move for the pacman & updating the goat_test_counter if necessary & updating the maze & not going into the obstacles & showing the pacman's score until now
-    def P_next_move(self):
+    #using the minimax algorithm for choosing the successive move for the pacman & updating the goat_test_counter if necessary & updating the maze & not going into the obstacles & showing the pacman's score until now
+    def P_next_move(self, depth):
+        self.C += 1
         self._score -= 1
         temp_pacman = copy.deepcopy(self._pacman)
         temp_inky = copy.deepcopy(self._inky)
         temp_pinky = copy.deepcopy(self._pinky)
         temp_maze = copy.deepcopy(self._maze)
         temp_GTC = copy.deepcopy(self._goal_test_counter)
-        initial_utility = 0
-        best_utility = 0
-
-        for move in self.possible_moves(temp_pacman._location, temp_maze):
-
-            temp_pacman.update_location_by_move(move)
-
-            if temp_maze[temp_pacman._location[0]][temp_pacman._location[1]] == 1:
-                    temp_GTC -= 1
-                    initial_utility += 4
-
-                    temp_maze[temp_pacman._location[0]][temp_pacman._location[1]] = 0
-
-
-
-            utility = self.minimax(1, 3, temp_maze, temp_pacman, temp_inky, temp_pinky, temp_GTC) + initial_utility
-            if utility > best_utility:
-                best_utility = utility
-                best_move = move
-        
+        best_move = self.minimax(0, 0, depth, temp_maze, temp_pacman, temp_inky, temp_pinky, temp_GTC)
         self._pacman.update_location_by_move(best_move)
         if self._maze[self._pacman._location[0]][self._pacman._location[1]] == 1:
-                    self._goal_test_counter -= 1
-                    self._score += 10
-                    self.dot_eaten([self._pacman._location[0], self._pacman._location[1]])
+            self._goal_test_counter -= 1
+            self._score += 10
+            self.dot_eaten([self._pacman._location[0], self._pacman._location[1]])
 
     #the game function
-    def run(self):
+    def run(self, depth):
         self._score += 10
         self._maze[8][0] = 0
         self._goal_test_counter -= 1
@@ -428,17 +498,22 @@ class Game:
         sleep(0.5)
         clear()
         while(self.goal_test() or self.fail_test()):
-            self.P_next_move()
+            self.P_next_move(depth)
             self._inky.next_move(self._maze)
             self._pinky.next_move(self._maze)
             self.game_print()
-            sleep(0.5)
+            sleep(0.05)
             clear()
-        if self.goal_test():
-            print("Pacman won!")
-        if self.fail_test():
-            print("Pacman lost!")
+            if not self.goal_test():
+                clear()
+                print("Pacman won!")
+                return 1, self._score
+            if not self.fail_test():
+                clear()
+                print("Pacman lost!")
+                return 0, self._score
 
 
 game = Game()
-game.run()
+game.run(1)
+
