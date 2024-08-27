@@ -1,5 +1,7 @@
 # Pac-Man AI Project
 
+![T7n](https://github.com/user-attachments/assets/fbbd893e-4468-4182-a963-501ac5d9f2b2)
+
 ## Overview
 
 This project involves implementing an AI agent for the classic Pac-Man game using the Minimax algorithm and an appropriate utility function. The goal is to enable the Pac-Man agent to play the game optimally by considering the positions of the ghosts and the available dots on the game board. The AI will be designed to maximize the score while avoiding capture by the ghosts.
