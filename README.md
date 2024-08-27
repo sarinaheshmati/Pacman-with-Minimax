@@ -9,19 +9,14 @@ This project involves implementing an AI agent for the classic Pac-Man game usin
 **Minimax Algorithm:**
 Minimax is a decision-making algorithm used in two-player games. It evaluates all possible moves by recursively exploring game states up to a certain depth. The Maximizer aims to maximize the score, while the Minimizer seeks to minimize it. The algorithm chooses the move that maximizes the player's minimum gain, assuming the opponent plays optimally.
 
-**Alpha-Beta Pruning:**
-Alpha-Beta Pruning optimizes Minimax by eliminating branches that won't affect the final decision. It uses two values:
-- **Alpha:** The best value that the Maximizer can achieve.
-- **Beta:** The best value that the Minimizer can achieve.
-
 If a node's score is outside the range defined by Alpha and Beta, further exploration of that node is skipped, improving efficiency without affecting the result.
 
 ## Key Features
 
 - **Minimax Algorithm:** Used to determine the best move for Pac-Man by exploring potential future states up to a certain depth.
-- **Expectimax Algorithm:** Applied to handle the randomness of ghost movements, improving the decision-making process by considering probabilistic outcomes.
-- **Alpha-Beta Pruning:** Optional optimization to reduce the search space of the Minimax algorithm, allowing deeper search with improved efficiency.
+
 - **Utility Function (e-utility):** Calculates the score of a game state based on Pac-Man's distance to ghosts and the nearest dot.
+
 ### Addressing a Key Challenge in Pac-Man AI
 
 One of the major challenges in implementing AI for Pac-Man was dealing with the limitations of using Manhattan distance for finding the closest dot. The Manhattan distance approach often led to Pac-Man getting trapped behind walls, as it only considers the straight-line distance and does not account for obstacles in the path. This resulted in Pac-Man frequently being unable to navigate around barriers, making it more vulnerable to ghosts.
@@ -84,3 +79,20 @@ This creative solution showcases a significant advancement in the AI’s ability
 - **distance_M(location1, location2):** Calculates the Manhattan distance between two points.
 - **clear():** Clears the console output for a smoother game simulation.
 
+### Future Works
+
+- **Alpha-Beta Pruning:** Optional optimization to reduce the search space of the Minimax algorithm, allowing deeper search with improved efficiency.
+- **Expectimax Algorithm:** Applied to handle the randomness of ghost movements, improving the decision-making process by considering probabilistic outcomes.
+  
+**Alpha-Beta Pruning:**
+Alpha-Beta Pruning optimizes Minimax by eliminating branches that won't affect the final decision. It uses two values:
+- **Alpha:** The best value that the Maximizer can achieve.
+- **Beta:** The best value that the Minimizer can achieve.
+
+**Expectimax Algorithm:**
+Expectimax is an extension of Minimax that handles uncertainty by incorporating probabilistic elements. Unlike Minimax, where players alternate between maximizing and minimizing, Expectimax evaluates game states based on expected outcomes. 
+
+- **Maximizer Nodes:** Choose moves that maximize their score.
+- **Chance Nodes:** Calculate the expected value based on probabilities of various outcomes.
+
+Expectimax is useful for scenarios where the opponent’s moves are probabilistic or random, providing a more realistic evaluation of uncertain situations compared to Minimax.
